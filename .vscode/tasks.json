@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Start Digit Memory Span App",
+			"type": "shell",
+			"command": "npm run server & npm run dev",
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}
