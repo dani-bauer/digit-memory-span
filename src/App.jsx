@@ -2,12 +2,22 @@ import { useState, useEffect } from 'react'
 import './App.css'
 
 function App() {
-  const [currentLevel, setCurrentLevel] = useState(1)
+  // Test selection
+  const [selectedTest, setSelectedTest] = useState(null) // null = menu, 'digit', 'ospan'
+  
+  const [currentLevel, setCurrentLevel] = useState(3)
   const [digits, setDigits] = useState([])
   const [userInput, setUserInput] = useState('')
   const [gameState, setGameState] = useState('ready') // ready, playing, input, correct, incorrect, finished
   const [message, setMessage] = useState('')
   const [score, setScore] = useState(0)
+  
+  // OSPAN specific state
+  const [mathProblems, setMathProblems] = useState([])
+  const [lettersToRemember, setLettersToRemember] = useState([])
+  const [currentProblemIndex, setCurrentProblemIndex] = useState(0)
+  const [mathAnswer, setMathAnswer] = useState('')
+  const [ospanPhase, setOspanPhase] = useState('math') // 'math' or 'recall'
   
   // Settings
   const [pauseDuration, setPauseDuration] = useState(800) // milliseconds
@@ -27,6 +37,52 @@ function App() {
     if (savedNormalScores) setNormalScores(JSON.parse(savedNormalScores))
     if (savedReverseScores) setReverseScores(JSON.parse(savedReverseScores))
   }, [])
+  
+  // Handle keyboard input
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (gameState !== 'input') return
+      
+      if (selectedTest === 'digit') {
+        // Handle number keys (0-9) for digit span
+        if (e.key >= '0' && e.key <= '9') {
+          e.preventDefault()
+          if (userInput.length < currentLevel) {
+            setUserInput(userInput + e.key)
+          }
+        }
+      } else if (selectedTest === 'ospan') {
+        // Handle letter keys for OSPAN
+        if (e.key.match(/^[a-zA-Z]$/)) {
+          e.preventDefault()
+          if (userInput.length < currentLevel) {
+            setUserInput(userInput + e.key.toUpperCase())
+          }
+        }
+      }
+      
+      // Handle backspace
+      if (e.key === 'Backspace') {
+        e.preventDefault()
+        setUserInput(userInput.slice(0, -1))
+      }
+      
+      // Handle Enter key to submit
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        if (userInput.length === currentLevel) {
+          if (selectedTest === 'digit') {
+            checkAnswer()
+          } else if (selectedTest === 'ospan') {
+            checkOspanAnswer()
+          }
+        }
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [gameState, userInput, currentLevel, selectedTest])
   
   // Calculate weighted score based on speed
   const calculateWeightedScore = (level, pauseMs) => {
@@ -85,7 +141,7 @@ function App() {
   }
 
   // Speak digits using macOS say command
-  const speakDigits = async (digitsToSpeak) => {
+  const speakDigits = async (digitsToSpeak, level = currentLevel) => {
     setGameState('playing')
     setMessage(reverseMode ? 'Listen carefully... (reverse mode)' : 'Listen carefully...')
     
@@ -115,7 +171,7 @@ function App() {
       
       setGameState('input')
       const modeText = reverseMode ? ' in REVERSE order' : ''
-      setMessage(`Enter the ${currentLevel} digit${currentLevel > 1 ? 's' : ''}${modeText}:`)
+      setMessage(`Enter the ${level} digit${level > 1 ? 's' : ''}${modeText}:`)
     } catch (error) {
       console.error('Error speaking digits:', error)
       setMessage('Error: Could not speak digits. Make sure the backend server is running.')
@@ -158,7 +214,7 @@ function App() {
           // Automatically start next level with correct number of digits
           const newDigits = generateDigits(nextLevel)
           setDigits(newDigits)
-          speakDigits(newDigits)
+          speakDigits(newDigits, nextLevel)
         }, 2000)
       }
     } else {
@@ -179,12 +235,149 @@ function App() {
 
   // Reset game
   const resetGame = () => {
-    setCurrentLevel(1)
+    setCurrentLevel(3)
     setDigits([])
     setUserInput('')
     setGameState('ready')
     setMessage('')
     setScore(0)
+    setMathProblems([])
+    setLettersToRemember([])
+    setCurrentProblemIndex(0)
+    setMathAnswer('')
+    setOspanPhase('math')
+  }
+  
+  // Return to test selection menu
+  const returnToMenu = () => {
+    resetGame()
+    setSelectedTest(null)
+  }
+
+  // ==================== OSPAN Functions ====================
+  
+  // Generate a simple math problem
+  const generateMathProblem = () => {
+    const operations = ['+', '-', '*']
+    const operation = operations[Math.floor(Math.random() * operations.length)]
+    let num1, num2, correctAnswer
+    
+    if (operation === '*') {
+      num1 = Math.floor(Math.random() * 9) + 2
+      num2 = Math.floor(Math.random() * 9) + 2
+      correctAnswer = num1 * num2
+    } else if (operation === '+') {
+      num1 = Math.floor(Math.random() * 50) + 10
+      num2 = Math.floor(Math.random() * 50) + 10
+      correctAnswer = num1 + num2
+    } else {
+      num1 = Math.floor(Math.random() * 50) + 30
+      num2 = Math.floor(Math.random() * 20) + 5
+      correctAnswer = num1 - num2
+    }
+    
+    // Generate a wrong answer (off by 1-5)
+    const offset = Math.floor(Math.random() * 5) + 1
+    const wrongAnswer = Math.random() < 0.5 ? correctAnswer + offset : correctAnswer - offset
+    
+    return {
+      problem: `${num1} ${operation} ${num2}`,
+      correctAnswer,
+      presentedAnswer: Math.random() < 0.5 ? correctAnswer : wrongAnswer,
+      isCorrect: null
+    }
+  }
+  
+  // Generate random letter (excluding vowels to avoid words)
+  const generateLetter = () => {
+    const consonants = 'BCDFGHJKLMNPQRSTVWXYZ'
+    return consonants[Math.floor(Math.random() * consonants.length)]
+  }
+  
+  // Start OSPAN round
+  const startOspanRound = (level = currentLevel) => {
+    const problems = []
+    const letters = []
+    
+    for (let i = 0; i < level; i++) {
+      problems.push(generateMathProblem())
+      letters.push(generateLetter())
+    }
+    
+    setMathProblems(problems)
+    setLettersToRemember(letters)
+    setCurrentProblemIndex(0)
+    setOspanPhase('math')
+    setGameState('playing')
+    setMessage('Solve the math problem and remember the letter')
+  }
+  
+  // Handle math problem response
+  const handleMathResponse = (isCorrect) => {
+    const updatedProblems = [...mathProblems]
+    updatedProblems[currentProblemIndex].isCorrect = isCorrect
+    setMathProblems(updatedProblems)
+    
+    if (currentProblemIndex < currentLevel - 1) {
+      setCurrentProblemIndex(currentProblemIndex + 1)
+    } else {
+      // All problems done, time to recall
+      setOspanPhase('recall')
+      setGameState('input')
+      setUserInput('')
+      setMessage(`Enter the ${currentLevel} letters in order:`)
+    }
+  }
+  
+  // Check OSPAN answer
+  const checkOspanAnswer = () => {
+    const correctAnswer = lettersToRemember.join('')
+    const mathAccuracy = mathProblems.filter(p => p.isCorrect).length / mathProblems.length
+    
+    // Require at least 85% math accuracy
+    if (mathAccuracy < 0.85) {
+      setGameState('incorrect')
+      setMessage(`Math accuracy too low: ${Math.round(mathAccuracy * 100)}%. Need 85% or better.`)
+      setTimeout(() => {
+        setGameState('finished')
+        const weightedScore = score > 0 ? calculateWeightedScore(score, pauseDuration) : 0
+        setMessage(`Game Over! Final score: ${score}\nWeighted Score: ${weightedScore}`)
+      }, 3000)
+      return
+    }
+    
+    if (userInput === correctAnswer) {
+      setGameState('correct')
+      setMessage('Correct! 🎉')
+      setScore(currentLevel)
+      
+      if (currentLevel === 10) {
+        addScoreToLeaderboard(currentLevel, false) // OSPAN uses normal leaderboard
+        setGameState('finished')
+        const weightedScore = calculateWeightedScore(currentLevel, pauseDuration)
+        setMessage(`Amazing! You completed all 10 levels! 🏆\nWeighted Score: ${weightedScore}`)
+      } else {
+        setTimeout(() => {
+          const nextLevel = currentLevel + 1
+          setCurrentLevel(nextLevel)
+          setUserInput('')
+          setMessage('')
+          startOspanRound(nextLevel)
+        }, 2000)
+      }
+    } else {
+      if (score > 0) {
+        addScoreToLeaderboard(score, false)
+      }
+      
+      setGameState('incorrect')
+      setMessage(`Incorrect! The correct answer was: ${correctAnswer}`)
+      setTimeout(() => {
+        setGameState('finished')
+        const weightedScore = score > 0 ? calculateWeightedScore(score, pauseDuration) : 0
+        setMessage(`Game Over! Final score: ${score}\nWeighted Score: ${weightedScore}`)
+      }, 3000)
+    }
   }
 
   // Handle number button clicks
@@ -201,9 +394,54 @@ function App() {
     }
   }
 
+  // Test selection menu
+  if (selectedTest === null) {
+    return (
+      <div className="app">
+        <h1>Memory Tests</h1>
+        <p className="menu-subtitle">Select a test to begin</p>
+        
+        <div className="test-menu">
+          <button 
+            className="test-card"
+            onClick={() => setSelectedTest('digit')}
+          >
+            <h2>📊 Digit Span Test</h2>
+            <p>Remember and repeat sequences of digits</p>
+            <ul>
+              <li>Tests short-term auditory memory</li>
+              <li>Progressive difficulty (3-10 digits)</li>
+              <li>Optional reverse mode</li>
+            </ul>
+          </button>
+          
+          <button 
+            className="test-card"
+            onClick={() => setSelectedTest('ospan')}
+          >
+            <h2>🧮 Operation Span Test</h2>
+            <p>Solve math problems while remembering letters</p>
+            <ul>
+              <li>Tests working memory capacity</li>
+              <li>Dual-task paradigm</li>
+              <li>Requires 85%+ math accuracy</li>
+            </ul>
+          </button>
+        </div>
+      </div>
+    )
+  }
+  
   return (
     <div className="app">
-      <h1>Digit Memory Span Test</h1>
+      <h1>{selectedTest === 'digit' ? 'Digit Memory Span Test' : 'Operation Span Test'}</h1>
+      <button 
+        className="back-button"
+        onClick={returnToMenu}
+        disabled={gameState === 'playing' || gameState === 'input'}
+      >
+        ← Back to Menu
+      </button>
       
       <div className="info-panel">
         <div className="level-info">Level: {currentLevel}/10</div>
@@ -328,12 +566,22 @@ function App() {
 
       <div className="message-panel">
         {message && <p className={`message ${gameState}`}>{message}</p>}
-        {(gameState === 'incorrect' || gameState === 'finished') && digits.length > 0 && userInput && (
+        {selectedTest === 'digit' && (gameState === 'incorrect' || gameState === 'finished') && digits.length > 0 && userInput && (
           <div className="correct-answer-display">
             <p className="correct-answer-label">Correct answer:</p>
             <div className="correct-answer-digits">
               {(reverseMode ? digits.slice().reverse() : digits).map((digit, index) => (
                 <span key={index} className="correct-digit-box">{digit}</span>
+              ))}
+            </div>
+          </div>
+        )}
+        {selectedTest === 'ospan' && (gameState === 'incorrect' || gameState === 'finished') && lettersToRemember.length > 0 && userInput && (
+          <div className="correct-answer-display">
+            <p className="correct-answer-label">Correct letters:</p>
+            <div className="correct-answer-digits">
+              {lettersToRemember.map((letter, index) => (
+                <span key={index} className="correct-digit-box">{letter}</span>
               ))}
             </div>
           </div>
@@ -356,13 +604,41 @@ function App() {
         </div>
       )}
 
+      {/* OSPAN Math Problem Display */}
+      {selectedTest === 'ospan' && gameState === 'playing' && ospanPhase === 'math' && mathProblems[currentProblemIndex] && (
+        <div className="ospan-problem">
+          <div className="problem-display">
+            <h3>Problem {currentProblemIndex + 1} of {currentLevel}</h3>
+            <p className="math-problem">{mathProblems[currentProblemIndex].problem} = {mathProblems[currentProblemIndex].presentedAnswer}?</p>
+            <div className="math-buttons">
+              <button 
+                className="math-button correct"
+                onClick={() => handleMathResponse(mathProblems[currentProblemIndex].presentedAnswer === mathProblems[currentProblemIndex].correctAnswer)}
+              >
+                ✓ Correct
+              </button>
+              <button 
+                className="math-button incorrect"
+                onClick={() => handleMathResponse(mathProblems[currentProblemIndex].presentedAnswer !== mathProblems[currentProblemIndex].correctAnswer)}
+              >
+                ✗ Incorrect
+              </button>
+            </div>
+          </div>
+          <div className="letter-display">
+            <h3>Remember this letter:</h3>
+            <div className="letter-box">{lettersToRemember[currentProblemIndex]}</div>
+          </div>
+        </div>
+      )}
+
       {gameState === 'ready' && (
-        <button className="start-button" onClick={startRound}>
+        <button className="start-button" onClick={selectedTest === 'digit' ? startRound : () => startOspanRound(currentLevel)}>
           Start Level {currentLevel}
         </button>
       )}
 
-      {gameState === 'input' && (
+      {gameState === 'input' && selectedTest === 'digit' && (
         <div className="keypad">
           <div className="number-buttons">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((digit) => (
@@ -383,6 +659,39 @@ function App() {
             <button
               className="submit-button"
               onClick={checkAnswer}
+              disabled={userInput.length !== currentLevel}
+            >
+              Submit
+            </button>
+          </div>
+        </div>
+      )}
+
+      {gameState === 'input' && selectedTest === 'ospan' && (
+        <div className="keypad">
+          <div className="letter-buttons">
+            {'BCDFGHJKLMNPQRSTVWXYZ'.split('').map((letter) => (
+              <button
+                key={letter}
+                className="digit-button"
+                onClick={() => {
+                  if (userInput.length < currentLevel) {
+                    setUserInput(userInput + letter)
+                  }
+                }}
+                disabled={userInput.length >= currentLevel}
+              >
+                {letter}
+              </button>
+            ))}
+          </div>
+          <div className="action-buttons">
+            <button className="backspace-button" onClick={handleBackspace}>
+              ⌫ Backspace
+            </button>
+            <button
+              className="submit-button"
+              onClick={checkOspanAnswer}
               disabled={userInput.length !== currentLevel}
             >
               Submit

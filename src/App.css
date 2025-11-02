@@ -18,6 +18,203 @@ h1 {
   margin-bottom: 1rem;
 }
 
+/* Test Selection Menu */
+.menu-subtitle {
+  color: #888;
+  font-size: 1.1rem;
+  margin-top: -1rem;
+  margin-bottom: 2rem;
+}
+
+.test-menu {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 900px;
+}
+
+.test-card {
+  flex: 1;
+  min-width: 300px;
+  max-width: 400px;
+  padding: 2rem;
+  background: #2d3250;
+  border: 2px solid #8b93ff;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: left;
+}
+
+.test-card:hover {
+  transform: translateY(-5px);
+  border-color: #a8afff;
+  box-shadow: 0 10px 30px rgba(124, 133, 255, 0.3);
+}
+
+.test-card h2 {
+  color: #a8afff;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.test-card p {
+  color: #fff;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.test-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.test-card li {
+  color: #888;
+  font-size: 0.9rem;
+  padding: 0.3rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.test-card li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #4ade80;
+}
+
+.back-button {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  border: 2px solid #8b93ff;
+  background: #2d3250;
+  color: #ffffff !important;
+  cursor: pointer;
+  transition: all 0.2s;
+  align-self: flex-start;
+}
+
+.back-button:hover:not(:disabled) {
+  background: #7c85ff;
+  border-color: #a8afff;
+}
+
+.back-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* OSPAN Specific Styles */
+.ospan-problem {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+  max-width: 600px;
+}
+
+.problem-display {
+  padding: 2rem;
+  background: #2d3250;
+  border: 2px solid #8b93ff;
+  border-radius: 12px;
+}
+
+.problem-display h3 {
+  color: #a8afff;
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.math-problem {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #fff;
+  margin: 2rem 0;
+}
+
+.math-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.math-button {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border-radius: 8px;
+  border: 2px solid;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #ffffff !important;
+}
+
+.math-button.correct {
+  background: #2d5016;
+  border-color: #4ade80;
+}
+
+.math-button.correct:hover {
+  background: #4ade80;
+  transform: scale(1.05);
+}
+
+.math-button.incorrect {
+  background: #501616;
+  border-color: #f87171;
+}
+
+.math-button.incorrect:hover {
+  background: #f87171;
+  transform: scale(1.05);
+}
+
+.letter-display {
+  padding: 2rem;
+  background: #2d3250;
+  border: 2px solid #a8afff;
+  border-radius: 12px;
+}
+
+.letter-display h3 {
+  color: #a8afff;
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.letter-box {
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  font-weight: bold;
+  border: 3px solid #7c85ff;
+  border-radius: 12px;
+  background: #1a1a1a;
+  color: #ffffff !important;
+  margin: 0 auto;
+}
+
+.letter-buttons {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  max-width: 600px;
+}
+
+.letter-buttons .digit-button {
+  width: auto;
+  height: 60px;
+}
+
 .info-panel {
   display: flex;
   gap: 1rem;

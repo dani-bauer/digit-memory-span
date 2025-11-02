@@ -1,29 +1,58 @@
-# Digit Memory Span Test
+# Memory Tests
 
-A React application that implements a digit memory span test to assess short-term memory capacity. The application features customizable settings, multiple voice options, weighted scoring, and persistent leaderboards.
+A React application that implements cognitive tests to assess short-term and working memory capacity. The application features two different tests with customizable settings, weighted scoring, and persistent leaderboards.
 
-## Features
+## Available Tests
 
-- **Progressive Difficulty**: Tests memory span from 1 to 10 unique digits
-- **Text-to-Speech**: Uses macOS `/usr/bin/say` command with multiple voice options
-- **Interactive GUI**: User-friendly number keypad for entering digits
+### 1. Digit Memory Span Test
+Tests short-term auditory memory by presenting sequences of spoken digits.
+
+**Features:**
+- Progressive difficulty from 3 to 10 unique digits
+- Text-to-speech with multiple voice options
+- Reverse mode for increased difficulty
+- Keyboard and mouse input support
+
+### 2. Operation Span (OSPAN) Test
+Tests working memory capacity using a dual-task paradigm that combines math problem solving with letter memorization.
+
+**Features:**
+- Solve math problems while remembering letters
+- Progressive difficulty from 3 to 10 items
+- Requires 85%+ math accuracy to continue
+- Tests ability to maintain information while processing
+
+## General Features
+
+- **Interactive GUI**: User-friendly interfaces with keypads
 - **Real-time Feedback**: Immediate validation with visual feedback
-- **Customizable Settings**:
+- **Customizable Settings** (Digit Span):
   - Adjustable pause duration between digits (200ms - 2000ms)
-  - Reverse mode for increased difficulty
   - Voice selection (English, German, French, Italian)
 - **Weighted Scoring System**: Performance adjusted based on speed
-- **Persistent Leaderboards**: Top 15 scores for normal and reverse modes
+- **Persistent Leaderboards**: Top 15 scores tracked separately
 - **Auto-progression**: Automatically advances to next level on success
+- **Keyboard Support**: Full keyboard input for both tests
 
-## How It Works
+## How the Tests Work
 
-1. The application starts at level 1 (1 digit)
+### Digit Memory Span Test
+1. The test starts at level 3 (3 digits)
 2. Random, unique digits (0-9) are spoken using text-to-speech
-3. You enter the digits you heard using the on-screen keypad
-4. If correct, you automatically advance to the next level with one more digit
-5. The game continues until you complete all 10 levels or make a mistake
-6. Your weighted score is calculated and saved to the leaderboard
+3. Enter the digits using keyboard or on-screen keypad
+4. If correct, automatically advance to the next level
+5. Continue until completing level 10 or making a mistake
+6. Weighted score is calculated and saved to leaderboard
+
+### Operation Span Test
+1. The test starts at level 3 (3 problems + letters)
+2. For each item:
+   - View a math problem and judge if the answer is correct
+   - Remember the letter shown after each problem
+3. After all problems, recall all letters in order
+4. Must maintain 85%+ math accuracy to continue
+5. Continue until completing level 10 or making a mistake
+6. Weighted score is calculated and saved to leaderboard
 
 ## Prerequisites
 
@@ -79,11 +108,13 @@ memory/
 ### Frontend (React - App.jsx)
 
 #### State Management
+- **Test Selection**: `selectedTest` ('digit', 'ospan', or null for menu)
 - **Game State**: `currentLevel`, `digits`, `userInput`, `gameState`, `message`, `score`
 - **Settings**: `pauseDuration`, `reverseMode`, `selectedVoice`, `showSettings`
 - **Leaderboards**: `normalScores`, `reverseScores`, `showLeaderboard`
+- **OSPAN State**: `mathProblems`, `lettersToRemember`, `currentProblemIndex`, `mathAnswer`, `ospanPhase`
 
-#### Core Functions
+#### Core Functions - Digit Span Test
 
 **`generateDigits(level)`**
 - Generates random, non-repeating digits for the current level
@@ -145,6 +176,38 @@ memory/
 **`handleBackspace()`**
 - Removes last digit from user input
 - Only active during input state
+
+#### Core Functions - OSPAN Test
+
+**`generateMathProblem()`**
+- Creates simple math problems (addition, subtraction, multiplication)
+- Generates both correct and incorrect answer options
+- Returns problem object with equation and answers
+- Difficulty appropriate for quick mental math
+
+**`generateLetter()`**
+- Selects random consonant letter (excludes vowels)
+- Prevents formation of words during recall
+- Returns single uppercase letter
+
+**`startOspanRound()`**
+- Initializes new OSPAN round
+- Generates math problems and corresponding letters
+- Sets up problem sequence for current level
+- Starts with first math problem
+
+**`handleMathResponse(isCorrect)`**
+- Records user's judgment of math problem
+- Tracks accuracy for 85% threshold requirement
+- Advances to next problem or moves to recall phase
+- Updates UI to show current progress
+
+**`checkOspanAnswer()`**
+- Validates letter recall against correct sequence
+- Checks math accuracy requirement (85%+)
+- On success: advances to next level or completes test
+- On failure: shows correct answer and ends test
+- Calculates and saves weighted score
 
 #### UI Components
 - **Info Panel**: Displays current level, best score, settings/leaderboard buttons
@@ -215,20 +278,47 @@ memory/
 
 ## How to Play
 
+### Test Selection
+1. Choose between **Digit Span Test** or **Operation Span Test**
+2. Read the test description and features
+3. Click on a test card to begin
+
+### Digit Span Test
 1. Click "⚙️ Settings" to customize:
    - Adjust pause duration (default 800ms)
    - Select voice (English/German/French/Italian)
    - Enable reverse mode for extra challenge
-2. Click "Start Level 1" to begin
+2. Click "Start Level 3" to begin
 3. Listen carefully as the digits are spoken
 4. Enter the digits using the number keypad
    - Normal mode: Enter in same order
    - Reverse mode: Enter in reverse order
-5. Click "Submit" to check your answer
+5. Click "Submit" or press Enter to check your answer
 6. On success: Automatically advances to next level
 7. On failure or completion: View weighted score
 8. Click "🏆 Leaderboard" to see top 15 scores for each mode
 9. Click "Play Again" to restart
+10. Click "← Back to Menu" to select a different test
+
+### Operation Span Test
+1. Click "Start Level 3" to begin
+2. For each problem in the sequence:
+   - Read the math equation (e.g., "5 + 3 = 8?")
+   - Click "✓ Correct" or "✗ Incorrect" to judge the answer
+   - Remember the letter shown after your response
+3. After all problems, recall the letters:
+   - Enter letters in order using the letter keypad or keyboard
+   - Must maintain 85%+ math accuracy to continue
+4. Click "Submit" or press Enter to check your recall
+5. On success: Automatically advances to next level
+6. On failure or completion: View math accuracy and weighted score
+7. Click "🏆 Leaderboard" to see top 15 scores
+8. Click "Play Again" to restart
+9. Click "← Back to Menu" to select a different test
+
+### Keyboard Shortcuts
+- **Digit Span**: Number keys (0-9), Backspace, Enter
+- **OSPAN**: Letter keys (A-Z), Backspace, Enter
 
 ## Development
 
